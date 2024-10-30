@@ -1,0 +1,17 @@
+k8s-istio-project/
+├── README.md
+├── scripts/
+│   └── setup.sh
+├── manifests/
+│   ├── namespace/
+│   │   └── namespaces.yaml
+│   ├── istio/
+│   │   ├── gateway.yaml
+│   │   └── virtualservice.yaml
+│   ├── bookinfo/
+│   │   └── bookinfo.yaml
+│   └── monitoring/
+│       ├── kiali.yaml
+│       └── prometheus.yaml
+└── docs/
+    └── setup.md 
