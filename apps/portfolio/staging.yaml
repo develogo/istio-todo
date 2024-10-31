@@ -1,0 +1,110 @@
+# Namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: portfolio-staging
+  labels:
+    istio-injection: enabled
+---
+# Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: portfolio
+  namespace: portfolio-staging
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: portfolio
+  template:
+    metadata:
+      labels:
+        app: portfolio
+        version: v1
+      annotations:
+        sidecar.istio.io/inject: "true"
+    spec:
+      containers:
+      - name: portfolio
+        image: develogo/portfolio:latest
+        ports:
+        - containerPort: 80
+          name: http
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "200m"
+---
+# Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: portfolio
+  namespace: portfolio-staging
+spec:
+  ports:
+  - port: 80
+    targetPort: 80
+    protocol: TCP
+    name: http
+  selector:
+    app: portfolio
+---
+# Gateway
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  name: portfolio-gateway
+  namespace: portfolio-staging
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+  - port:
+      number: 80
+      name: http
+      protocol: HTTP
+    hosts:
+    - "*"
+---
+# VirtualService
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: portfolio
+  namespace: portfolio-staging
+spec:
+  hosts:
+  - "*"
+  gateways:
+  - portfolio-gateway
+  http:
+  - route:
+    - destination:
+        host: portfolio.portfolio-staging.svc.cluster.local
+        port:
+          number: 80
+---
+# ArgoCD Application
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: portfolio-staging
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/seu-repo/portfolio-k8s
+    targetRevision: HEAD
+    path: apps/portfolio
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: portfolio-staging
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true 
